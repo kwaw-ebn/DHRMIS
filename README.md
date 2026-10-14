@@ -1,6 +1,6 @@
 # GHS StaffHub — DHRMIS
 
-A working Phase 1 pilot for the Agona East District Health Directorate, Ghana Health Service. Built with Next.js/TypeScript, FastAPI, SQLAlchemy and Alembic. PostgreSQL on Neon; a single Docker web service on Render. **Use synthetic information only until institutional authorization is complete.**
+A working Phase 1–2 pilot for the Agona East District Health Directorate, Ghana Health Service. Built with Next.js/TypeScript, FastAPI, SQLAlchemy and Alembic. PostgreSQL on Neon; a single Docker web service on Render. **Use synthetic information only until institutional authorization is complete.**
 
 ## Implemented MVP
 
@@ -15,11 +15,15 @@ A working Phase 1 pilot for the Agona East District Health Directorate, Ghana He
 - Account creation, disabling, password reset and session revocation; audit logs for sensitive reads, writes, exports and authentication.
 - Responsive interface, light/dark themes, loading/error/empty states, browser print stylesheet.
 
+## Phase 2 daily administration
+
+Leave policies, annual balances, holiday calendars, staged approvals, leave start/return/cancellation, internal transfer and posting history, receiving acknowledgement, private Neon document storage/versioning, administrative request assignment/responses, correspondence register, letter PDF export, workflow notifications and scoped on-demand reminders are implemented. See `docs/phase2-guide.md` for setup and boundaries.
+
 ## Explicitly deferred
 
-Leave applications/balances, approval routing, postings/transfers, confidential document uploads, attendance/offline rosters, promotion/retirement rules, training/CPD, appraisals, correspondence, notifications, staffing establishment planning, Excel and generated PDF reports are **not implemented**. The app labels later phases clearly. Unit reassignment is blocked in profile edits until the transfer approval workflow exists. No Ghana Health Service entitlements or policies are invented.
+Attendance/offline rosters, promotion/retirement rules, training/CPD, appraisals, staffing establishment planning, Excel analytics, cross-district movements, arbitrary approval chains, SMS/email delivery and unattended scheduled reminders remain future work. Transfers now use the Phase 2 approval workflow rather than profile editing.
 
-This is a pilot, not a production readiness claim. Independent security review and institutional approvals are necessary before real HR use. Application scopes are enforced in the API; database RLS is not implemented in this phase. One pilot district is supported. No public signup, public personnel data or public document storage.
+This is a pilot, not a production readiness claim. Independent security review and institutional approvals are necessary before real HR use. Application scopes are enforced in the API; database RLS is not implemented in this phase. One pilot district is supported. No public signup, public personnel data or public document storage. Private documents use an authenticated API and short-lived authorized download links.
 
 ## Local development
 

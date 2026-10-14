@@ -2,11 +2,11 @@
 
 ## Hosting
 
-Render Docker web service and dedicated Neon PostgreSQL pilot in Frankfurt. The Render free service may sleep when idle; availability is not guaranteed for operations. Database records persist across container redeploys. Confidential file uploads are not enabled, avoiding ephemeral filesystem storage.
+Render Docker web service and dedicated Neon PostgreSQL pilot in Frankfurt. The Render free service may sleep when idle; availability is not guaranteed for operations. Database records persist across container redeploys. Phase 2 files are stored in the private Neon personnel-documents bucket, never the ephemeral container filesystem. Back up object contents and metadata alongside PostgreSQL and test their joint restoration.
 
 Secrets: pooled DATABASE_URL, direct DATABASE_URL_UNPOOLED, MFA_ENCRYPTION_KEY, ADMIN_EMAIL and initial ADMIN_PASSWORD. COOKIE_SECURE stays true for HTTPS. Bootstrap is once-only and never resets existing users. Save the MFA encryption key separately and do not rotate it without re-encrypting enrolled secrets. Initial ADMIN_PASSWORD can be removed after bootstrap. Check health, deploy status/logs, MFA, dashboard and a create/edit/export workflow after deployment. Never print credentials in logs.
 
-Migrations run on startup for this single-instance pilot. Production release migrations must be serialized as separate jobs. Application connections have a bounded pool and pool_pre_ping. No background worker, automatic backup scheduler, SMS/email provider or private object store is provisioned in Phase 1.
+Migrations run on startup for this single-instance pilot. Production release migrations must be serialized as separate jobs. Application connections have a bounded pool and pool_pre_ping. No background worker, automatic backup scheduler or SMS/email provider is provisioned. Phase 2 uses private object storage and refreshes in-app reminders on demand.
 
 ## MFA recovery
 
@@ -36,6 +36,6 @@ Freeze writes, take a direct database backup and protect configuration. Restore 
 
 Implemented: Argon2, privileged TOTP, encrypted MFA secrets, secure sessions/CSRF/origin checks, lockout, expiry, role and subtree scoping, confidential-field filtering, minimal audit, atomic validation, uniqueness, stale-edit protection, HTTPS configuration, no public personnel endpoints and no geolocation tracking.
 
-Open: formal institutional hosting/data authorization; independent security review; verified role/field matrix; privacy/retention/incident procedures; PostgreSQL RLS and restricted runtime role; edge rate limiting for arbitrary-email/IP attacks; CSP hardening to remove inline allowances; private object storage before uploads; automated encrypted backups with restore drills; monitoring/alerting; migration release process; accessibility/load tests; audit archival; verified hosting capacity/geography.
+Open: formal institutional hosting/data authorization; independent security review; verified role/field matrix; privacy/retention/incident procedures; PostgreSQL RLS and restricted runtime role; edge rate limiting for arbitrary-email/IP attacks; CSP hardening to remove inline allowances; malware scanning and private-object backup/restore validation; automated encrypted backups with restore drills; monitoring/alerting; migration release process; accessibility/load tests; audit archival; verified hosting capacity/geography.
 
 Audit is read-only through the API, not cryptographically immutable or protected from a database owner. The current connection role has owner privileges for startup migrations. The app uses API scopes rather than database RLS, supports one pilot district and is for synthetic evaluation. Real employee processing remains subject to institutional approval.

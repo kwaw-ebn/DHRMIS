@@ -14,7 +14,7 @@ from .models import Unit, Employee, Assignment, User, Session as LoginSession, A
 from .schemas import Login, MfaCode, PasswordChange, UnitInput, EmployeeInput, UserInput, Vocabulary, ROLES, STATUSES
 from .security import *
 
-app=FastAPI(title='GHS StaffHub — DHRMIS',version='0.1.0',docs_url='/api/docs',openapi_url='/api/openapi.json')
+app=FastAPI(title='GHS StaffHub — DHRMIS',version='0.2.0',docs_url='/api/docs',openapi_url='/api/openapi.json')
 SECURE=os.getenv('COOKIE_SECURE','true').lower()=='true'
 
 @app.middleware('http')
@@ -40,7 +40,7 @@ async def integrity_error(request,exc):
 @app.get('/api/health')
 def health(db: Session=Depends(get_db)):
     db.execute(select(1))
-    return {'status':'ok','mode':'synthetic-data pilot','version':'0.1.0'}
+    return {'status':'ok','mode':'synthetic-data pilot','version':'0.2.0'}
 
 @app.post('/api/auth/login')
 def login(data:Login,response:Response,db:Session=Depends(get_db)):
@@ -155,6 +155,8 @@ def rename_unit(unit_id:str,data:dict,db:Session=Depends(get_db),user:User=Depen
 def archive_unit(unit_id:str,db:Session=Depends(get_db),user:User=Depends(current_user)):
     allow(user,{'hr_admin'});unit=db.get(Unit,unit_id)
     if not unit or not unit.active: raise HTTPException(404,'Unit not found')
+    from .phase2_models import Case
+    if db.query(Case).filter(or_(Case.target_unit_id==unit_id,Case.source_unit_id==unit_id),Case.status.notin_(['cancelled','rejected','closed','completed','applied'])).first(): raise HTTPException(409,'Resolve pending HR workflows before archiving this unit')
     if unit.kind in {'organization','district'}: raise HTTPException(400,'Root units cannot be archived')
     if db.query(Unit).filter(Unit.parent_id==unit_id,Unit.active==True).first() or db.query(Employee).filter(Employee.unit_id==unit_id,Employee.archived==False).first() or db.query(User).filter(User.unit_id==unit_id,User.active==True).first(): raise HTTPException(409,'Move staff and child units and remove user scopes before archiving')
     unit.active=False;audit(db,user,'UNIT_ARCHIVED',unit_id);db.commit();return {'ok':True}
@@ -291,7 +293,7 @@ def update_employee(employee_id:str,data:EmployeeInput,db:Session=Depends(get_db
     if not row: raise HTTPException(404,'Staff record not found')
     if data.version!=row.version: raise HTTPException(409,'The record has changed. Reload it before editing.')
     validate_employee(data,db,row.id)
-    if data.unit_id!=row.unit_id: raise HTTPException(400,'Postings and transfers require the Phase 2 approval workflow. Current assignment cannot be changed here.')
+    if data.unit_id!=row.unit_id: raise HTTPException(400,'Use Postings & transfers to change assignments through the approval workflow.')
     changes=[]
     for key,value in data.model_dump(exclude={'version'}).items():
         if key in {'ghs_number','payroll_number'} and value=='':value=None
@@ -301,7 +303,9 @@ def update_employee(employee_id:str,data:EmployeeInput,db:Session=Depends(get_db
 
 @app.delete('/api/employees/{employee_id}')
 def archive_employee(employee_id:str,db:Session=Depends(get_db),user:User=Depends(current_user)):
-    allow(user,{'hr_admin'});row=db.get(Employee,employee_id)
+    allow(user,{'hr_admin'});row=db.query(Employee).filter(Employee.id==employee_id).with_for_update().populate_existing().first()
+    from .phase2_models import Case
+    if db.query(Case).filter(Case.employee_id==employee_id,Case.status.notin_(['cancelled','rejected','closed','completed','applied'])).first():raise HTTPException(409,'Resolve active HR workflows before archiving this staff record')
     if not row or row.archived: raise HTTPException(404,'Staff record not found')
     row.archived=True;row.version+=1
     for account in db.query(User).filter(User.employee_id==row.id):
@@ -367,6 +371,9 @@ def reset_password(user_id:str,db:Session=Depends(get_db),user:User=Depends(curr
     temporary=secrets.token_urlsafe(18);account.password_hash=ph.hash(temporary);account.must_change_password=True;account.failed_attempts=0;account.locked_until=None
     db.query(LoginSession).filter(LoginSession.user_id==account.id).delete();audit(db,user,'PASSWORD_RESET',account.id);db.commit()
     return {'temporary_password':temporary,'note':'Share through an approved private channel. MFA remains required.'}
+
+from .phase2 import router as phase2_router
+app.include_router(phase2_router)
 
 static=Path(__file__).parent.parent/'static'
 if static.exists(): app.mount('/',StaticFiles(directory=static,html=True),name='frontend')
