@@ -141,3 +141,10 @@ def test_calendar_policy_does_not_require_working_weekdays(client,world):
     as_role(client,'hr_admin');data={'name':'Calendar day pilot policy','reference':'Synthetic calendar policy reference','requires_balance':False,'count_basis':'calendar','working_days':[],'final_role':'director'}
     assert client.post('/api/leave/policies',json=data).status_code==201
     data['name']='Working day pilot policy';data['count_basis']='working';assert client.post('/api/leave/policies',json=data).status_code==422
+
+def test_unlinked_employee_cannot_read_district_correspondence(client,world):
+    factory,_=world;as_role(client,'hr_admin');r=client.post('/api/correspondence',json={'title':'Restricted district memo','body':'Restricted administrative contents','direction':'Internal memo','correspondent':'HR office'});assert r.status_code==201
+    with factory() as db:
+        user=db.query(User).filter_by(role='employee').one();user.employee_id=None;db.commit()
+    as_role(client,'employee');assert client.get('/api/cases').json()['total']==0
+    assert client.get('/api/cases/'+r.json()['id']).status_code==404

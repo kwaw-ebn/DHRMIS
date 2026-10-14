@@ -26,7 +26,9 @@ def case_query(db,user):
     allow(user,OPERATIONS)
     query=db.query(Case)
     if user.role in HR or user.role=='director':return query
-    if user.role=='employee':return query.filter(or_(Case.created_by==user.id,Case.employee_id==user.employee_id))
+    if user.role=='employee':
+        if not user.employee_id:return query.filter(Case.created_by==user.id)
+        return query.filter(or_(Case.created_by==user.id,Case.employee_id==user.employee_id))
     staff_ids=[e.id for e in staff_query(db,user).all()]
     scope=descendants(db,user.unit_id)
     return query.filter(or_(Case.employee_id.in_(staff_ids),Case.created_by==user.id,Case.assigned_to==user.id,(Case.kind=='transfer') & (Case.source_unit_id.in_(scope)),(Case.kind=='transfer') & (Case.target_unit_id.in_(scope)) & Case.status.in_(['approved','acknowledged','applied'])))

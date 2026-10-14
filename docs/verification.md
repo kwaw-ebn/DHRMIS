@@ -15,6 +15,6 @@ Tests do not establish production certification. See the explicitly open operati
 
 ## Phase 2 validation
 
-25 critical API tests pass, including approval separation, cross-year leave, cancellation, overlapping leave, balances, transfer scope/effective-date/history, private document versions, reminders and correspondence. The frontend production build passes. Both additive PostgreSQL migrations succeeded on the isolated phase2-migration-test Neon branch, preserving 24 employees and the existing account. A fresh local migration and Alembic model drift check also pass. Phase 2 deployment is tracked separately in the live Render service.
+26 critical API tests pass, including approval separation, cross-year leave, cancellation, overlapping leave, balances, transfer scope/effective-date/history, private document versions, reminders and correspondence. The frontend production build passes. Both additive PostgreSQL migrations succeeded on the isolated phase2-migration-test Neon branch, preserving 24 employees and the existing account. A fresh local migration and Alembic model drift check also pass. Phase 2 deployment is tracked separately in the live Render service.
 
 Private storage integration passed on the isolated branch: a generated synthetic PDF uploaded via a signed PUT, downloaded with identical bytes via a signed GET, and denied when requested without a signature. Python and npm dependency scans report no known vulnerabilities at verification time.
