@@ -1,0 +1,12 @@
+.env*
+!.env.example
+__pycache__/
+.pytest_cache/
+*.pyc
+*.db
+node_modules/
+.next/
+out/
+backend/static/
+*.tsbuildinfo
+.neon
