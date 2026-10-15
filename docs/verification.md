@@ -40,3 +40,7 @@ Private storage integration passed on the isolated branch: a generated synthetic
 ## Staff files and grades — 2026-10-15
 
 Release 0.3.2: all 48 backend tests passed and the frontend production build completed. Tests cover permanent case-normalized Staff IDs/file numbers, duplicate rejection, CSV import, the four grade choices, file access scopes, document permissions and restricted appraisal visibility. No database schema migration is required. Pilot grade settings are Senior, Principal, Deputy Chief and Chief; no synthetic staff were added.
+
+## HR tasks and reminders — 2026-10-15
+
+Release 0.4.0: all 57 backend tests passed; frontend production build, TypeScript and static export passed; git diff whitespace check passed. Added tests cover configurable workweeks/holidays, contiguous approved leave, ending/due/overdue/resolved reminders, independent return confirmation, notification deduplication, configuration/review version conflicts, private latest-document reminders, completeness, retirement and pending workforce scope, monthly totals, report review and CSV export. No database migration, new messaging subscription, or production sample data is required. Production verification checks deployment commit, health version, route authentication, published API schema and pilot data preservation. Authenticated workflow behavior is covered locally; live checks do not alter the administrator account.

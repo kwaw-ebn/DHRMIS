@@ -65,6 +65,9 @@ def view_case(db,row):
     employee=db.get(Employee,row.employee_id) if row.employee_id else None
     result['employee_name']=employee.full_name if employee else None
     result['data']=parsed(row.data)
+    if row.kind=='leave' and row.end_date:
+        from .hr_tasks import expected_return
+        result['expected_return_date']=expected_return(db,row)
     result['history']=[{'action':a.action,'actor':db.get(User,a.actor_id).name,'comment':a.comment,'created_at':a.created_at} for a in db.query(Approval).filter(Approval.case_id==row.id).order_by(Approval.created_at)]
     return result
 
@@ -266,14 +269,16 @@ def transition(cid:str,data:ActionInput,db:Session=Depends(get_db),user:User=Dep
         if employee.archived or employee.status not in {'Active','On secondment'}:raise HTTPException(409,'The current employment status does not permit leave commencement')
         payload=parsed(row.data);payload['previous_status']=employee.status;row.data=json.dumps(payload);employee.status='On approved leave';employee.version+=1;row.status='in_progress'
     elif action=='report_return':
-        if row.kind!='leave' or row.status!='in_progress':raise HTTPException(409,'Leave is not in progress')
+        if row.kind!='leave' or row.status not in {'in_progress','approved'} or date.today()<row.start_date:raise HTTPException(409,'Approved leave must have reached its start date before reporting return')
         if not is_self(user,employee) and user.role not in HR:raise HTTPException(403,'Only the employee or HR may report return')
-        row.status='return_reported'
+        payload=parsed(row.data);payload['return_reported_date']=str(date.today());row.data=json.dumps(payload);row.status='return_reported'
     elif action=='confirm_return':
         allow(user,HR|SCOPED)
         if row.kind!='leave' or row.status!='return_reported':raise HTTPException(409,'A return report is required first')
+        no_self()
+        if user.role in SCOPED and employee.unit_id not in descendants(db,user.unit_id):raise HTTPException(403,'Current supervisor scope required')
         if employee.status=='On approved leave':employee.status=parsed(row.data).get('previous_status','Active');employee.version+=1
-        row.status='completed'
+        payload=parsed(row.data);payload['return_confirmed_date']=str(date.today());row.data=json.dumps(payload);row.status='completed'
     elif action=='acknowledge':
         if row.kind!='transfer' or row.status!='approved':raise HTTPException(409,'A final approved movement is required')
         allow(user,SCOPED|{'hr_admin'})
@@ -437,4 +442,9 @@ def refresh_reminders(db,user):
         if case.kind=='leave' and case.status=='approved' and case.start_date<=today+timedelta(days=7):add('leave-start:'+case.id,'Approved leave start review: '+case.reference,case_id=case.id)
         if case.kind=='transfer' and case.status=='acknowledged' and case.start_date<=today:add('movement:'+case.id,'Approved movement ready for HR review: '+case.reference,case_id=case.id)
         if case.kind=='transfer' and case.status=='applied' and case.end_date and case.end_date<=today+timedelta(days=30):add('movement-end:'+case.id,'Temporary placement end review: '+case.reference,case_id=case.id)
+    from .hr_tasks import build_tasks
+    tasks,_=build_tasks(db,user,today)
+    for task in tasks:
+        if task['kind'] in {'leave_ending','leave_return','return_confirmation'}:
+            add('hr-task:'+task['id']+':'+str(task['due_date'])+':'+task['priority'],task['title']+' — '+(task['file_number'] or '')+' · '+str(task['due_date']),case_id=task['case_id'])
     db.commit()
