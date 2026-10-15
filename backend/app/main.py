@@ -14,7 +14,7 @@ from .models import Unit, Employee, Assignment, User, Session as LoginSession, A
 from .schemas import Login, MfaCode, PasswordChange, UnitInput, EmployeeInput, UserInput, Vocabulary, ROLES, STATUSES
 from .security import *
 
-app=FastAPI(title='GHS StaffHub — DHRMIS',version='0.3.1',docs_url='/api/docs',openapi_url='/api/openapi.json')
+app=FastAPI(title='GHS StaffHub — DHRMIS',version='0.3.2',docs_url='/api/docs',openapi_url='/api/openapi.json')
 SECURE=os.getenv('COOKIE_SECURE','true').lower()=='true'
 
 @app.middleware('http')
@@ -40,7 +40,7 @@ async def integrity_error(request,exc):
 @app.get('/api/health')
 def health(db: Session=Depends(get_db)):
     db.execute(select(1))
-    return {'status':'ok','mode':'pilot','version':'0.3.1'}
+    return {'status':'ok','mode':'pilot','version':'0.3.2'}
 
 @app.post('/api/auth/login')
 def login(data:Login,response:Response,db:Session=Depends(get_db)):
@@ -184,6 +184,10 @@ def validate_employee(data,db,employee_id=None):
     for key,value in [('cadres',data.cadre),('grades',data.grade)]:
         row=db.get(Setting,key)
         if value and (not row or value not in json.loads(row.value)): raise HTTPException(400,f'Choose a configured {key[:-1]}')
+    if data.staff_id:
+        duplicate=db.query(Employee).filter(func.lower(Employee.staff_id)==data.staff_id.lower())
+        if employee_id:duplicate=duplicate.filter(Employee.id!=employee_id)
+        if duplicate.first():raise HTTPException(409,'This staff ID / file number already exists')
     if data.supervisor_id:
         supervisor=db.get(Employee,data.supervisor_id)
         if not supervisor or supervisor.archived or data.supervisor_id==employee_id: raise HTTPException(400,'Invalid supervisor')
@@ -196,7 +200,7 @@ def employee_view(row,user):
     fields=['id','staff_id','full_name','preferred_name','job_title','cadre','grade','rank','status','unit_id','verified','version','licence_expiry','created_at','updated_at']
     if user.role in HR or (user.role=='employee' and user.employee_id==row.id):
         fields += ['ghs_number','payroll_number','date_of_birth','gender','email','phone','address','emergency_contact','appointment_type','employment_date','first_appointment_date','posting_date','supervisor_id','qualification','registration_body','registration_number','specialty']
-    return {k:getattr(row,k) for k in fields}
+    return {k:getattr(row,k) for k in fields}|{'file_number':row.staff_id}
 
 def filter_staff(query,q,unit_id,cadre,status,db):
     if q: query=query.filter(or_(Employee.full_name.ilike(f'%{q}%'),Employee.staff_id.ilike(f'%{q}%'),Employee.job_title.ilike(f'%{q}%')))
@@ -226,7 +230,7 @@ def export(q:str='',unit_id:str='',cadre:str='',status:str='',db:Session=Depends
 @app.get('/api/employees/import-template')
 def import_template(user:User=Depends(current_user)):
     allow(user,HR)
-    return Response('full_name,ghs_number,payroll_number,email,phone,job_title,cadre,grade,status,unit_id,employment_date,licence_expiry\n',media_type='text/csv',headers={'Content-Disposition':'attachment; filename="staff-import-template.csv"'})
+    return Response('staff_id,full_name,ghs_number,payroll_number,email,phone,job_title,cadre,grade,status,unit_id,employment_date,licence_expiry\n',media_type='text/csv',headers={'Content-Disposition':'attachment; filename="staff-import-template.csv"'})
 
 @app.post('/api/employees/import')
 async def import_staff(file:UploadFile=File(...),db:Session=Depends(get_db),user:User=Depends(current_user)):
@@ -239,7 +243,7 @@ async def import_staff(file:UploadFile=File(...),db:Session=Depends(get_db),user
         rows=list(reader)
     except (UnicodeDecodeError,csv.Error): raise HTTPException(400,'Upload a valid UTF-8 CSV')
     if not rows or len(rows)>500: raise HTTPException(400,'Import 1–500 rows at a time')
-    validated=[];errors=[];seen_ghs=set();seen_payroll=set();seen_people=set()
+    validated=[];errors=[];seen_ghs=set();seen_payroll=set();seen_staff_ids=set();seen_people=set()
     for n,row in enumerate(rows,2):
         try:
             if None in row: raise ValueError('Unexpected extra columns')
@@ -248,7 +252,7 @@ async def import_staff(file:UploadFile=File(...),db:Session=Depends(get_db),user
             if unknown: raise ValueError('Unknown CSV columns: '+', '.join(sorted(unknown)))
             clean.pop('version',None);clean['verified']=False
             data=EmployeeInput(**clean);validate_employee(data,db)
-            for field,seen in [('ghs_number',seen_ghs),('payroll_number',seen_payroll)]:
+            for field,seen in [('staff_id',seen_staff_ids),('ghs_number',seen_ghs),('payroll_number',seen_payroll)]:
                 value=getattr(data,field)
                 if value and (value in seen or db.query(Employee).filter(getattr(Employee,field)==value).first()): raise ValueError(f'Duplicate {field}')
                 if value: seen.add(value)
@@ -262,10 +266,10 @@ async def import_staff(file:UploadFile=File(...),db:Session=Depends(get_db),user
     audit(db,user,'STAFF_IMPORT',detail=f'{len(validated)} records');db.commit();return {'imported':len(validated)}
 
 def add_employee(data,db,user):
-    payload=data.model_dump(exclude={'version'})
+    payload=data.model_dump(exclude={'version'});staff_id=payload.pop('staff_id',None)
     for field in ['ghs_number','payroll_number']:
         if payload[field]=='':payload[field]=None
-    employee=Employee(**payload,staff_id='SH-'+secrets.token_hex(5).upper())
+    employee=Employee(**payload,staff_id=staff_id or 'SH-'+secrets.token_hex(5).upper())
     db.add(employee);db.flush()
     db.add(Assignment(employee_id=employee.id,unit_id=employee.unit_id,effective_date=employee.posting_date or date.today(),reason='Initial personnel registration'))
     audit(db,user,'EMPLOYEE_CREATED',employee.id)
@@ -294,8 +298,9 @@ def update_employee(employee_id:str,data:EmployeeInput,db:Session=Depends(get_db
     if data.version!=row.version: raise HTTPException(409,'The record has changed. Reload it before editing.')
     validate_employee(data,db,row.id)
     if data.unit_id!=row.unit_id: raise HTTPException(400,'Use Postings & transfers to change assignments through the approval workflow.')
+    if data.staff_id is not None and data.staff_id!=row.staff_id:raise HTTPException(400,'Staff ID / file number is permanent and cannot be changed through profile editing')
     changes=[]
-    for key,value in data.model_dump(exclude={'version'}).items():
+    for key,value in data.model_dump(exclude={'version','staff_id'}).items():
         if key in {'ghs_number','payroll_number'} and value=='':value=None
         if getattr(row,key)!=value: changes.append(key)
         setattr(row,key,value)
@@ -380,6 +385,9 @@ app.include_router(phase3_router)
 
 from .photos import router as photos_router
 app.include_router(photos_router)
+
+from .staff_files import router as staff_files_router
+app.include_router(staff_files_router)
 
 static=Path(__file__).parent.parent/'static'
 if static.exists(): app.mount('/',StaticFiles(directory=static,html=True),name='frontend')

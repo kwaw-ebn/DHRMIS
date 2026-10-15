@@ -36,3 +36,7 @@ Private storage integration passed on the isolated branch: a generated synthetic
 - SQLite Alembic upgrade/check passed; PostgreSQL migration `05c436c0d031` was generated from the same Alembic revision and applied transactionally to the isolated Neon migration-test branch. One administrator, zero staff and zero photos were preserved.
 - Tests verify optional/no-photo behavior, authenticated photo responses, forbidden roles and outside-scope access, HR-only upload, JPEG/PNG normalization, EXIF removal, resizing, invalid/spoofed/oversized rejection, stale replacement protection, retained immutable versions, CSRF and archive restrictions, and preservation during storage failures.
 - Photo tests use an in-memory S3 substitute; existing private Neon storage configuration is reused. No synthetic staff or photo was added to the live pilot. End-to-end photo upload in a signed-in live HR session is not part of these automated checks.
+
+## Staff files and grades — 2026-10-15
+
+Release 0.3.2: all 48 backend tests passed and the frontend production build completed. Tests cover permanent case-normalized Staff IDs/file numbers, duplicate rejection, CSV import, the four grade choices, file access scopes, document permissions and restricted appraisal visibility. No database schema migration is required. Pilot grade settings are Senior, Principal, Deputy Chief and Chief; no synthetic staff were added.

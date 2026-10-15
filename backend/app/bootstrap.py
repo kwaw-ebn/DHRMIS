@@ -17,7 +17,7 @@ def bootstrap():
             dep=Unit(name=name,kind='department',parent_id=dhd.id);db.add(dep);departments.append(dep)
         db.flush()
         cadres=['Nutrition Officer','Nurse','Midwife','Medical Officer','Health Information Officer','Administrative Officer','Community Health Nurse','Disease Control Officer']
-        grades=['Pilot Grade A','Pilot Grade B','Pilot Grade C'] if os.getenv('SEED_SYNTHETIC','false').lower()=='true' else []
+        grades=['Pilot Grade A','Pilot Grade B','Pilot Grade C'] if os.getenv('SEED_SYNTHETIC','false').lower()=='true' else ['Senior','Principal','Deputy Chief','Chief']
         db.add_all([Setting(key='cadres',value=json.dumps(cadres)),Setting(key='grades',value=json.dumps(grades)),Setting(key='district_name',value=json.dumps(district.name))])
         db.add(User(email=email.lower(),name='Pilot HR Administrator',password_hash=ph.hash(password),role='hr_admin'))
         if os.getenv('SEED_SYNTHETIC','false').lower()=='true':

@@ -9,6 +9,7 @@ A working Phase 1–3 pilot for the Agona East District Health Directorate, Ghan
 - Configurable organization → district → sub-district/facility → department hierarchy, with rename and guarded archive operations.
 - Nine roles with API-enforced scopes. Employees see their own record; heads see their assigned subtree. Platform administrators have no personnel API access. Auditors have audit access only.
 - Optional private passport photographs on staff registration and profiles, with JPEG/PNG validation, previews, HR replacement, metadata stripping and scoped viewing.
+- Personnel files use the Staff ID as their permanent file number. Staff entry accepts an explicit ID; file views group scoped documents and HR history. Current configured grades: Senior, Principal, Deputy Chief and Chief.
 - Staff registration, detailed profiles, validated editing with concurrent-update checks, review verification, safe archive and historical initial assignments.
 - Search and pagination; cadre, unit and status filters; controlled vocabulary administration.
 - UTF-8 CSV import with duplicate checks, row validation and all-or-nothing transactions. Safe, scoped CSV export. Limit: 500 rows / 2 MB per import.

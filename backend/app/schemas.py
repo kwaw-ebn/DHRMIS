@@ -1,6 +1,6 @@
 from datetime import date
 from typing import Literal
-from pydantic import BaseModel, Field, EmailStr, model_validator
+from pydantic import BaseModel, Field, EmailStr, model_validator, field_validator
 ROLES = ['platform_admin','director','hr_admin','hr_officer','subdistrict_head','facility_head','department_head','employee','auditor']
 STATUSES = ['Active','On approved leave','On study leave','On secondment','Transferred out','Retired','Separated','Deceased']
 class Login(BaseModel):
@@ -17,6 +17,12 @@ class UnitInput(BaseModel):
     parent_id: str | None = None
     category: Literal['DHD','Polyclinic','Health Centre','CHPS','Other'] | None = None
 class EmployeeInput(BaseModel):
+    staff_id: str | None = Field(default=None, min_length=1, max_length=40, pattern=r'^[A-Za-z0-9][A-Za-z0-9/_-]*$')
+    @field_validator('staff_id',mode='before')
+    @classmethod
+    def normalize_staff_id(cls,value):
+        return value.strip().upper() if isinstance(value,str) else value
+
     full_name: str = Field(min_length=2, max_length=160)
     preferred_name: str | None = Field(default=None,max_length=100)
     ghs_number: str | None = Field(default=None,max_length=60)
