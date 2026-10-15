@@ -2,7 +2,7 @@ import os
 from alembic import context
 from sqlalchemy import create_engine, pool
 from app.db import Base, database_url
-from app import models, phase2_models, phase3_models, photos
+from app import models, phase2_models, phase3_models, photos, roster_uploads
 config=context.config
 target_metadata=Base.metadata
 url=database_url(os.getenv('DATABASE_URL_UNPOOLED',os.getenv('DATABASE_URL','sqlite:///./staffhub.db')))
