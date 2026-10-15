@@ -63,3 +63,5 @@ GitHub Actions runs backend tests, migration checks and the Next.js production b
 HR automation (0.4.0): Today’s HR Tasks includes leave-ending/return reminders, file completeness, document/licence expiry, configured career/retirement reviews, pending actions and monthly report preparation/export. See [the HR automation guide](docs/hr-automation.md) for configuration, scope and in-app delivery behavior.
 
 Paper duty rosters (0.4.2): upload private PDF/JPEG/PNG copies by workplace and period under Duty rosters. See [the paper roster guide](docs/paper-rosters.md).
+
+Administrative document register (0.4.3): upload minutes, incoming/outgoing letters and other records with searchable references, sender/recipient, dates and scoped access. See [the administrative document guide](docs/administrative-documents.md).

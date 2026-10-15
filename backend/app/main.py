@@ -14,7 +14,7 @@ from .models import Unit, Employee, Assignment, User, Session as LoginSession, A
 from .schemas import Login, MfaCode, PasswordChange, UnitInput, EmployeeInput, UserInput, Vocabulary, ROLES, STATUSES
 from .security import *
 
-app=FastAPI(title='GHS StaffHub — DHRMIS',version='0.4.2',docs_url='/api/docs',openapi_url='/api/openapi.json')
+app=FastAPI(title='GHS StaffHub — DHRMIS',version='0.4.3',docs_url='/api/docs',openapi_url='/api/openapi.json')
 SECURE=os.getenv('COOKIE_SECURE','true').lower()=='true'
 
 @app.middleware('http')
@@ -40,7 +40,7 @@ async def integrity_error(request,exc):
 @app.get('/api/health')
 def health(db: Session=Depends(get_db)):
     db.execute(select(1))
-    return {'status':'ok','mode':'pilot','version':'0.4.2'}
+    return {'status':'ok','mode':'pilot','version':'0.4.3'}
 
 @app.post('/api/auth/login')
 def login(data:Login,response:Response,db:Session=Depends(get_db)):
@@ -394,6 +394,9 @@ app.include_router(hr_tasks_router)
 
 from .roster_uploads import router as roster_uploads_router
 app.include_router(roster_uploads_router)
+
+from .admin_documents import router as admin_documents_router
+app.include_router(admin_documents_router)
 
 static=Path(__file__).parent.parent/'static'
 if static.exists(): app.mount('/',StaticFiles(directory=static,html=True),name='frontend')
