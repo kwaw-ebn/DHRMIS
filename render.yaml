@@ -21,4 +21,4 @@ services:
       - key: COOKIE_SECURE
         value: "true"
       - key: SEED_SYNTHETIC
-        value: "true"
+        value: "false"

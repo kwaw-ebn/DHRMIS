@@ -234,7 +234,14 @@ def transition(cid:str,data:ActionInput,db:Session=Depends(get_db),user:User=Dep
         row.status='hr_validated'
     elif action=='approve':
         if row.status!='hr_validated':raise HTTPException(409,'HR validation is required first')
-        final_authority();row.status='approved'
+        final_authority()
+        if row.kind=='leave':
+            from .phase3_models import DutyShift
+            from datetime import datetime,timezone
+            start=datetime.combine(row.start_date,datetime.min.time(),tzinfo=timezone.utc)
+            end=datetime.combine(row.end_date+timedelta(days=1),datetime.min.time(),tzinfo=timezone.utc)
+            if db.query(DutyShift).filter(DutyShift.employee_id==row.employee_id,DutyShift.status=='published',DutyShift.starts_at<end,DutyShift.ends_at>start).first():raise HTTPException(409,'Cancel or reconcile published duty shifts before approving overlapping leave')
+        row.status='approved'
     elif action=='reject':
         if row.status not in PENDING:raise HTTPException(409,'Only pending requests can be rejected')
         allow(user,HR|SCOPED|{row.final_role});no_self()

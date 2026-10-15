@@ -1,6 +1,6 @@
 # GHS StaffHub — DHRMIS
 
-A working Phase 1–2 pilot for the Agona East District Health Directorate, Ghana Health Service. Built with Next.js/TypeScript, FastAPI, SQLAlchemy and Alembic. PostgreSQL on Neon; a single Docker web service on Render. **Use synthetic information only until institutional authorization is complete.**
+A working Phase 1–3 pilot for the Agona East District Health Directorate, Ghana Health Service. Built with Next.js/TypeScript, FastAPI, SQLAlchemy and Alembic. PostgreSQL on Neon; a single Docker web service on Render. **Use synthetic information only until institutional authorization is complete.**
 
 ## Implemented MVP
 
@@ -19,9 +19,13 @@ A working Phase 1–2 pilot for the Agona East District Health Directorate, Ghan
 
 Leave policies, annual balances, holiday calendars, staged approvals, leave start/return/cancellation, internal transfer and posting history, receiving acknowledgement, private Neon document storage/versioning, administrative request assignment/responses, correspondence register, letter PDF export, workflow notifications and scoped on-demand reminders are implemented. See `docs/phase2-guide.md` for setup and boundaries.
 
+## Phase 3 workforce management
+
+Attendance with separate-officer verification and explicit conflict reconciliation; draft/published duty shifts with overlap and leave checks; completed training and CPD records; human promotion decisions; approved retirement/exit dates and checklists; configurable retirement planning with indicative forecasts; confidential reviewer assessments and HR release; approved staffing establishment gap comparisons. See `docs/phase3-guide.md`.
+
 ## Explicitly deferred
 
-Attendance/offline rosters, promotion/retirement rules, training/CPD, appraisals, staffing establishment planning, Excel analytics, cross-district movements, arbitrary approval chains, SMS/email delivery and unattended scheduled reminders remain future work. Transfers now use the Phase 2 approval workflow rather than profile editing.
+Persistent offline storage or background sync, geolocation/geofencing, automatic promotion or employment-status changes, configurable multi-stage promotion panels, external CPD accreditation, amendments to already approved establishment rows, cross-district movements, Excel analytics, SMS/email delivery and unattended scheduled reminders remain future work.
 
 This is a pilot, not a production readiness claim. Independent security review and institutional approvals are necessary before real HR use. Application scopes are enforced in the API; database RLS is not implemented in this phase. One pilot district is supported. No public signup, public personnel data or public document storage. Private documents use an authenticated API and short-lived authorized download links.
 
@@ -38,7 +42,7 @@ The Next.js UI is exported and served by FastAPI from the same origin. This keep
 
 `render.yaml` defines the free Frankfurt Docker service and health endpoint. Set `DATABASE_URL` to Neon’s pooled URL, `DATABASE_URL_UNPOOLED` to its direct URL, `MFA_ENCRYPTION_KEY`, `ADMIN_EMAIL`, and a strong initial `ADMIN_PASSWORD`. The Docker entrypoint runs Alembic and a once-only bootstrap before Uvicorn. Bootstrap never resets an existing account or duplicates seed records.
 
-`SEED_SYNTHETIC=true` seeds 24 clearly synthetic people, demo facilities and pilot grades. The root district identity is Agona East. Real sub-district and facility names must be configured from the approved register. Disable synthetic seed before a separately approved clean production deployment.
+Synthetic seeding defaults to **off**, including `render.yaml`. Explicitly setting `SEED_SYNTHETIC=true` in a separate test environment seeds 24 clearly synthetic people, demo facilities and pilot grades. The root district identity is Agona East. Real sub-district and facility names must be configured from the approved register. Disable synthetic seed before a separately approved clean production deployment.
 
 API reference: `/api/docs`. Health: `/api/health`. Secret values belong in Render environment variables, never Git. Save the MFA encryption key separately in a protected credential store; rotating it without re-encryption breaks enrolled accounts.
 

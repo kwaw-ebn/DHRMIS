@@ -16,9 +16,9 @@
 
 Add institution-approved versioned leave policies, holiday calendars, requests/balances and recommendation/final approval state machines. Add posting/transfer approvals with effective-date history and assumption-of-duty acknowledgement. Build private document storage, versions, short-lived downloads, correspondence, editable letter templates, administrative requests and notification delivery records. Test authority delegation and duplicate approval prevention.
 
-## Phase 3 — workforce management
+## Phase 3 — workforce management (implemented pilot)
 
-Add verified attendance/rosters with explicit offline conflict handling and no continuous location tracking. Add training/CPD, promotion administration, retirement rules/exit checklists, confidential appraisals and approved staffing establishments. Human officers retain employment and eligibility decisions. Test confidentiality and concurrent workflow changes.
+Implemented manual attendance with independent verification, in-memory form retry and version conflicts; published rosters with overlapping shift and approved leave checks; completed training/CPD; promotion tracking with director decisions; HR-configured retirement planning, indicative dates and exit checklists; assigned-reviewer appraisals released by a separate HR officer; and director-approved staffing establishments. Human officers retain employment and eligibility decisions. No persistent confidential browser storage or geolocation. See `phase3-guide.md` for scope and validation.
 
 ## Phase 4 — analytics and expansion
 
@@ -37,4 +37,4 @@ Add generated PDF/Excel reports, reliable scheduled jobs and approved integratio
 9. Recovery targets, retention, incident owners, availability and migration approval.
 10. Notification providers, safe templates and allowed integrations.
 
-No salary, leave entitlement, retirement age or promotion threshold is assumed. Synthetic grades are explicitly labelled. Complete Phase 1 evaluation before adding the later workflows. API documentation is generated at `/api/docs`.
+No salary, leave entitlement, retirement age or promotion threshold is assumed. Demo staff and units have been removed from the live pilot. Automatic synthetic seeding is disabled. API documentation is generated at `/api/docs`.
