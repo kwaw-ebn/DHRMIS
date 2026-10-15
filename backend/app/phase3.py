@@ -144,7 +144,8 @@ def record_action(rid:str,data:Action,db:Session=Depends(get_db),user:User=Depen
         if row.kind=='training' and row.end_date>date.today():raise HTTPException(400,'Training has not ended')
         target='submitted'
     elif data.action in {'verify','approve','reject'} and row.status=='submitted':
-        allow(user,HR if row.kind=='training' else {'director'})
+        if row.kind!='training' and not payload.get('final_role'):raise HTTPException(409,'This legacy record has no authorized final role; HR review is required')
+        allow(user,HR if row.kind=='training' else {payload['final_role']})
         if self_action or user.id==row.created_by:raise HTTPException(403,'A separate officer must record this decision')
         if (data.action=='verify' and row.kind!='training') or (data.action=='approve' and row.kind=='training'):raise HTTPException(400,'Invalid decision for this module')
         target='rejected' if data.action=='reject' else 'verified' if row.kind=='training' else 'approved'
@@ -239,7 +240,7 @@ def establishments(db:Session=Depends(get_db),user:User=Depends(current_user)):
     for row in q.order_by(Establishment.cadre).all():
         filled=staff_query(db,user).filter(Employee.unit_id.in_(descendants(db,row.unit_id)),Employee.cadre==row.cadre,Employee.status.notin_(['Retired','Separated','Transferred out','Deceased'])).count()
         effective=row.status=='approved' and row.effective_date<=date.today()
-        result.append({k:getattr(row,k) for k in ['id','unit_id','cadre','positions','reference','effective_date','status','version','created_by']}|{'unit_name':db.get(Unit,row.unit_id).name,'filled':filled,'vacancies':max(0,row.positions-filled) if effective else None,'surplus':max(0,filled-row.positions) if effective else None})
+        result.append({k:getattr(row,k) for k in ['id','unit_id','cadre','positions','reference','effective_date','status','version','created_by','final_role']}|{'unit_name':db.get(Unit,row.unit_id).name,'filled':filled,'vacancies':max(0,row.positions-filled) if effective else None,'surplus':max(0,filled-row.positions) if effective else None})
     audit(db,user,'ESTABLISHMENTS_READ');commit(db);return result
 
 @router.post('/establishments',status_code=201)
@@ -251,8 +252,10 @@ def create_establishment(data:EstablishmentInput,db:Session=Depends(get_db),user
 
 @router.post('/establishments/{rid}/actions')
 def establishment_action(rid:str,data:Action,db:Session=Depends(get_db),user:User=Depends(current_user)):
-    allow(user,{'director'});row=db.get(Establishment,rid)
+    allow(user,HR|{'director'});row=db.get(Establishment,rid)
     if not row:raise HTTPException(404,'Establishment not found')
+    if not row.final_role:raise HTTPException(409,'HR must revise this proposal to specify its authorized approval role')
+    allow(user,{row.final_role})
     if row.status!='draft' or data.action not in {'approve','reject'}:raise HTTPException(409,'Action is not available in this state')
     if row.created_by==user.id:raise HTTPException(403,'A separate officer must approve the establishment')
     cas(db,Establishment,row,data.version,{'status':'approved' if data.action=='approve' else 'rejected','approved_by':user.id})
@@ -264,7 +267,7 @@ def revise_establishment(rid:str,data:EstablishmentInput,version:int=Query(ge=1)
     if not row:raise HTTPException(404,'Establishment not found')
     if row.status not in {'draft','rejected'}:raise HTTPException(409,'Approved establishments are immutable in this pilot; amendments require a reviewed migration')
     if data.unit_id!=row.unit_id or data.cadre!=row.cadre:raise HTTPException(400,'Unit and cadre are immutable')
-    cas(db,Establishment,row,version,{'positions':data.positions,'reference':data.reference,'effective_date':data.effective_date,'status':'draft','approved_by':None,'created_by':user.id})
+    cas(db,Establishment,row,version,{'positions':data.positions,'reference':data.reference,'effective_date':data.effective_date,'status':'draft','approved_by':None,'created_by':user.id,'final_role':data.final_role})
     audit(db,user,'ESTABLISHMENT_REVISED',rid);commit(db);return {'id':rid,'version':row.version}
 
 from .phase3_schemas import RetirementPolicy

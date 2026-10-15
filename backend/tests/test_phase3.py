@@ -4,7 +4,7 @@ from app.models import User,Employee
 
 def create(client,world,kind='training',reviewer=None):
     _,ids=world
-    data={'training':{'provider':'Test provider','hours':4,'credits':2},'promotion':{'target_grade':'Pilot A','policy_reference':'Test authority','evidence':'Reviewed test evidence'},'retirement':{'policy_reference':'Test authority','reason':'Authorized test exit','checklist':['Handover','Return property']},'appraisal':{'objectives':'Test objectives'}}[kind]
+    data={'training':{'provider':'Test provider','hours':4,'credits':2},'promotion':{'final_role':'director','target_grade':'Pilot A','policy_reference':'Test authority','evidence':'Reviewed test evidence'},'retirement':{'final_role':'director','policy_reference':'Test authority','reason':'Authorized test exit','checklist':['Handover','Return property']},'appraisal':{'objectives':'Test objectives'}}[kind]
     r=client.post('/api/workforce/records',json={'kind':kind,'employee_id':ids['e1'],'title':'Test '+kind,'start_date':str(date.today()),'end_date':str(date.today()),'reviewer_id':reviewer,'data':data})
     assert r.status_code==201,r.text
     return r.json()
@@ -57,7 +57,7 @@ def test_attendance_conflict_separate_verification(client,world):
     as_role(client,'employee');assert client.put('/api/workforce/attendance',json={**p,'version':3,'outcome':'late'}).status_code==200
 
 def test_establishment_gaps_role_restrictions(client,world):
-    _,ids=world;as_role(client,'hr_admin');r=client.post('/api/workforce/establishments',json={'unit_id':ids['a'],'cadre':'Nurse','positions':3,'reference':'Test approved register','effective_date':str(date.today())});assert r.status_code==201,r.text;r=r.json()
+    _,ids=world;as_role(client,'hr_admin');r=client.post('/api/workforce/establishments',json={'unit_id':ids['a'],'cadre':'Nurse','positions':3,'final_role':'director','reference':'Test approved register','effective_date':str(date.today())});assert r.status_code==201,r.text;r=r.json()
     assert client.get('/api/workforce/establishments').json()[0]['vacancies'] is None
     as_role(client,'director');assert client.post('/api/workforce/establishments/'+r['id']+'/actions',json={'version':1,'action':'approve','comment':'Authority register checked'}).status_code==200
     result=client.get('/api/workforce/establishments').json()[0];assert result['filled']==1 and result['vacancies']==2
@@ -117,7 +117,18 @@ def test_staffing_subtree_and_ended_employment_exclusions(client,world):
         department=Unit(name='Nested department',kind='department',parent_id=ids['a']);db.add(department);db.flush()
         db.get(Employee,ids['e1']).unit_id=department.id
         e2=db.get(Employee,ids['e2']);e2.unit_id=ids['a'];e2.status='Separated';e2.date_of_birth=date(1960,1,1);db.commit()
-    as_role(client,'hr_admin');client.post('/api/workforce/establishments',json={'unit_id':ids['a'],'cadre':'Nurse','positions':3,'reference':'Test authority','effective_date':str(date.today())})
+    as_role(client,'hr_admin');client.post('/api/workforce/establishments',json={'unit_id':ids['a'],'cadre':'Nurse','positions':3,'final_role':'director','reference':'Test authority','effective_date':str(date.today())})
     assert client.get('/api/workforce/establishments').json()[0]['filled']==1
     client.put('/api/workforce/retirement-policy',json={'version':0,'reference':'Test authority','age_years':60,'notice_days':90})
     assert client.get('/api/workforce/retirement-forecast').json()['items']==[]
+
+def test_final_authority_is_explicit_and_enforced(client,world):
+    _,ids=world;as_role(client,'hr_officer');r=create(client,world,'promotion')
+    data={**r['data'],'final_role':'hr_admin'}
+    edited=client.put('/api/workforce/records/'+r['id'],json={'version':r['version'],'title':r['title'],'start_date':r['start_date'],'end_date':r['end_date'],'data':data});assert edited.status_code==200,edited.text
+    r=act(client,edited.json(),'hr_officer','submit');act(client,r,'director','approve',expected=403);assert act(client,r,'hr_admin','approve')['status']=='approved'
+    as_role(client,'hr_officer')
+    missing=client.post('/api/workforce/records',json={'kind':'promotion','employee_id':ids['e1'],'title':'Missing authority','start_date':str(date.today()),'end_date':str(date.today()),'data':{'target_grade':'Pilot A','policy_reference':'Test reference','evidence':'Test evidence'}});assert missing.status_code==422
+    e=client.post('/api/workforce/establishments',json={'unit_id':ids['a'],'cadre':'Nurse','positions':2,'final_role':'hr_admin','reference':'Test authority','effective_date':str(date.today())});assert e.status_code==201;e=e.json()
+    as_role(client,'director');assert client.post('/api/workforce/establishments/'+e['id']+'/actions',json={'version':1,'action':'approve','comment':'Wrong configured role'}).status_code==403
+    as_role(client,'hr_admin');assert client.post('/api/workforce/establishments/'+e['id']+'/actions',json={'version':1,'action':'approve','comment':'Selected authority decision'}).status_code==200

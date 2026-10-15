@@ -67,4 +67,5 @@ class Establishment(Base):
     status: Mapped[str] = mapped_column(String(30), default='draft')
     created_by: Mapped[str] = mapped_column(ForeignKey('users.id'))
     approved_by: Mapped[str | None] = mapped_column(ForeignKey('users.id'))
+    final_role: Mapped[str | None] = mapped_column(String(40))
     version: Mapped[int] = mapped_column(Integer, default=1)

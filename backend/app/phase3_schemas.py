@@ -10,10 +10,12 @@ class Training(Input):
     credits: float = Field(ge=0, le=1000)
     certificate_reference: str = Field(default='', max_length=250)
 class Promotion(Input):
+    final_role: Literal['director','hr_admin']
     target_grade: str = Field(min_length=1, max_length=80)
     policy_reference: str = Field(min_length=3, max_length=250)
     evidence: str = Field(min_length=3, max_length=4000)
 class Retirement(Input):
+    final_role: Literal['director','hr_admin']
     policy_reference: str = Field(min_length=3, max_length=250)
     reason: str = Field(min_length=3, max_length=1000)
     checklist: list[str] = Field(min_length=1, max_length=30)
@@ -67,6 +69,7 @@ class AttendanceInput(Input):
     note: str = Field(min_length=3, max_length=1000)
     version: int = Field(default=0, ge=0)
 class EstablishmentInput(Input):
+    final_role: Literal['director','hr_admin']
     unit_id: str
     cadre: str = Field(min_length=1, max_length=100)
     positions: int = Field(ge=0, le=10000)
