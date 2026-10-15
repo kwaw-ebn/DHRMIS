@@ -14,7 +14,7 @@ from .models import Unit, Employee, Assignment, User, Session as LoginSession, A
 from .schemas import Login, MfaCode, PasswordChange, UnitInput, EmployeeInput, UserInput, Vocabulary, ROLES, STATUSES
 from .security import *
 
-app=FastAPI(title='GHS StaffHub — DHRMIS',version='0.3.0',docs_url='/api/docs',openapi_url='/api/openapi.json')
+app=FastAPI(title='GHS StaffHub — DHRMIS',version='0.3.1',docs_url='/api/docs',openapi_url='/api/openapi.json')
 SECURE=os.getenv('COOKIE_SECURE','true').lower()=='true'
 
 @app.middleware('http')
@@ -28,7 +28,7 @@ async def headers(request,call_next):
     response.headers['X-Frame-Options']='DENY'
     response.headers['Referrer-Policy']='same-origin'
     response.headers['Permissions-Policy']='geolocation=(), camera=(), microphone=()'
-    response.headers['Content-Security-Policy']="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self'; frame-ancestors 'none'; base-uri 'self'; form-action 'self'"
+    response.headers['Content-Security-Policy']="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; connect-src 'self'; frame-ancestors 'none'; base-uri 'self'; form-action 'self'"
     if SECURE: response.headers['Strict-Transport-Security']='max-age=31536000; includeSubDomains'
     if request.url.path.startswith('/api'): response.headers['Cache-Control']='no-store'
     return response
@@ -40,7 +40,7 @@ async def integrity_error(request,exc):
 @app.get('/api/health')
 def health(db: Session=Depends(get_db)):
     db.execute(select(1))
-    return {'status':'ok','mode':'pilot','version':'0.3.0'}
+    return {'status':'ok','mode':'pilot','version':'0.3.1'}
 
 @app.post('/api/auth/login')
 def login(data:Login,response:Response,db:Session=Depends(get_db)):
@@ -377,6 +377,9 @@ app.include_router(phase2_router)
 
 from .phase3 import router as phase3_router
 app.include_router(phase3_router)
+
+from .photos import router as photos_router
+app.include_router(photos_router)
 
 static=Path(__file__).parent.parent/'static'
 if static.exists(): app.mount('/',StaticFiles(directory=static,html=True),name='frontend')

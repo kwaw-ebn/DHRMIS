@@ -8,6 +8,7 @@ A working Phase 1–3 pilot for the Agona East District Health Directorate, Ghan
 - Mandatory authenticator MFA for privileged roles; encrypted secrets; prevention of code replay; operator recovery; forced temporary-password changes.
 - Configurable organization → district → sub-district/facility → department hierarchy, with rename and guarded archive operations.
 - Nine roles with API-enforced scopes. Employees see their own record; heads see their assigned subtree. Platform administrators have no personnel API access. Auditors have audit access only.
+- Optional private passport photographs on staff registration and profiles, with JPEG/PNG validation, previews, HR replacement, metadata stripping and scoped viewing.
 - Staff registration, detailed profiles, validated editing with concurrent-update checks, review verification, safe archive and historical initial assignments.
 - Search and pagination; cadre, unit and status filters; controlled vocabulary administration.
 - UTF-8 CSV import with duplicate checks, row validation and all-or-nothing transactions. Safe, scoped CSV export. Limit: 500 rows / 2 MB per import.

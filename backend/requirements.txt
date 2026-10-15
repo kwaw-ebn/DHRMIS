@@ -12,3 +12,4 @@ starlette==1.8.0
 pydantic==2.13.5
 boto3==1.43.114
 reportlab==4.4.9
+Pillow==12.3.0

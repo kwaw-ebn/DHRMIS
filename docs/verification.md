@@ -28,3 +28,11 @@ Private storage integration passed on the isolated branch: a generated synthetic
 - Direct PostgreSQL DNS access from this execution host was unavailable. The API test suite uses SQLite; production startup must independently verify the ORM against PostgreSQL. Row-lock behavior under simultaneous requests has not been load-tested.
 - Critical checks include appraisal confidentiality (including HR self-access), separate-officer attendance verification after corrections, stale-version rejection, roster overlap and leave conflicts in both approval orders, manual promotion decisions, exit checklist gates, approved establishment gaps and no default retirement rule.
 - No dependencies added. No synthetic data added to the live pilot; seeding defaults to false in code and deployment configuration.
+
+## Optional staff passport photographs — 15 October 2026
+
+- Full API suite: **44 passed** (38 existing tests and six photo workflow tests).
+- Next.js production build and TypeScript checks passed.
+- SQLite Alembic upgrade/check passed; PostgreSQL migration `05c436c0d031` was generated from the same Alembic revision and applied transactionally to the isolated Neon migration-test branch. One administrator, zero staff and zero photos were preserved.
+- Tests verify optional/no-photo behavior, authenticated photo responses, forbidden roles and outside-scope access, HR-only upload, JPEG/PNG normalization, EXIF removal, resizing, invalid/spoofed/oversized rejection, stale replacement protection, retained immutable versions, CSRF and archive restrictions, and preservation during storage failures.
+- Photo tests use an in-memory S3 substitute; existing private Neon storage configuration is reused. No synthetic staff or photo was added to the live pilot. End-to-end photo upload in a signed-in live HR session is not part of these automated checks.
