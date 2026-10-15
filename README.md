@@ -64,4 +64,4 @@ HR automation (0.4.0): Today’s HR Tasks includes leave-ending/return reminders
 
 Paper duty rosters (0.4.2): upload private PDF/JPEG/PNG copies by workplace and period under Duty rosters. See [the paper roster guide](docs/paper-rosters.md).
 
-Administrative document register (0.4.3): upload minutes, incoming/outgoing letters and other records with searchable references, sender/recipient, dates and scoped access. See [the administrative document guide](docs/administrative-documents.md).
+HR document register (0.4.4): enter a unique filing number before upload; the office is fixed to HR, and documents are retrieved by exact filing number. See [the administrative document guide](docs/administrative-documents.md).
