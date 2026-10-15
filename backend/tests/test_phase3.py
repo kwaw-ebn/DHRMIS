@@ -108,3 +108,16 @@ def test_correction_cannot_be_self_verified(client,world):
     as_role(client,'hr_officer');r=client.put('/api/workforce/attendance',json={**p,'version':1,'outcome':'late'}).json()
     assert client.post('/api/workforce/attendance/'+r['id']+'/actions',json={'version':2,'action':'verify','comment':'Cannot verify own correction'}).status_code==403
     as_role(client,'hr_admin');assert client.post('/api/workforce/attendance/'+r['id']+'/actions',json={'version':2,'action':'verify','comment':'Independent review completed'}).status_code==200
+
+
+def test_staffing_subtree_and_ended_employment_exclusions(client,world):
+    from app.models import Unit
+    factory,ids=world
+    with factory() as db:
+        department=Unit(name='Nested department',kind='department',parent_id=ids['a']);db.add(department);db.flush()
+        db.get(Employee,ids['e1']).unit_id=department.id
+        e2=db.get(Employee,ids['e2']);e2.unit_id=ids['a'];e2.status='Separated';e2.date_of_birth=date(1960,1,1);db.commit()
+    as_role(client,'hr_admin');client.post('/api/workforce/establishments',json={'unit_id':ids['a'],'cadre':'Nurse','positions':3,'reference':'Test authority','effective_date':str(date.today())})
+    assert client.get('/api/workforce/establishments').json()[0]['filled']==1
+    client.put('/api/workforce/retirement-policy',json={'version':0,'reference':'Test authority','age_years':60,'notice_days':90})
+    assert client.get('/api/workforce/retirement-forecast').json()['items']==[]

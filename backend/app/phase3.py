@@ -237,7 +237,7 @@ def establishments(db:Session=Depends(get_db),user:User=Depends(current_user)):
     if user.role in SCOPED:q=q.filter(Establishment.unit_id.in_(descendants(db,user.unit_id)))
     result=[]
     for row in q.order_by(Establishment.cadre).all():
-        filled=staff_query(db,user).filter(Employee.unit_id==row.unit_id,Employee.cadre==row.cadre,Employee.status.notin_(['Retired','Resigned','Terminated','Deceased'])).count()
+        filled=staff_query(db,user).filter(Employee.unit_id.in_(descendants(db,row.unit_id)),Employee.cadre==row.cadre,Employee.status.notin_(['Retired','Separated','Transferred out','Deceased'])).count()
         effective=row.status=='approved' and row.effective_date<=date.today()
         result.append({k:getattr(row,k) for k in ['id','unit_id','cadre','positions','reference','effective_date','status','version','created_by']}|{'unit_name':db.get(Unit,row.unit_id).name,'filled':filled,'vacancies':max(0,row.positions-filled) if effective else None,'surplus':max(0,filled-row.positions) if effective else None})
     audit(db,user,'ESTABLISHMENTS_READ');commit(db);return result
@@ -288,7 +288,7 @@ def retirement_forecast(days:int=Query(365,ge=1,le=3650),db:Session=Depends(get_
     allow(user,HR|{'director'});row=db.get(Setting,'retirement_policy')
     if not row:return {'configured':False,'items':[],'missing_dates':None}
     policy=json.loads(row.value);items=[];missing=0;cutoff=date.today()+timedelta(days=days)
-    for e in staff_query(db,user).filter(Employee.status.notin_(['Retired','Resigned','Terminated','Deceased'])):
+    for e in staff_query(db,user).filter(Employee.status.notin_(['Retired','Separated','Transferred out','Deceased'])):
         if not e.date_of_birth:missing+=1;continue
         year=e.date_of_birth.year+policy['age_years']
         try:expected=e.date_of_birth.replace(year=year)
