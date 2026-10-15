@@ -14,7 +14,7 @@ from .models import Unit, Employee, Assignment, User, Session as LoginSession, A
 from .schemas import Login, MfaCode, PasswordChange, UnitInput, EmployeeInput, UserInput, Vocabulary, ROLES, STATUSES
 from .security import *
 
-app=FastAPI(title='GHS StaffHub — DHRMIS',version='0.4.0',docs_url='/api/docs',openapi_url='/api/openapi.json')
+app=FastAPI(title='GHS StaffHub — DHRMIS',version='0.4.1',docs_url='/api/docs',openapi_url='/api/openapi.json')
 SECURE=os.getenv('COOKIE_SECURE','true').lower()=='true'
 
 @app.middleware('http')
@@ -40,7 +40,7 @@ async def integrity_error(request,exc):
 @app.get('/api/health')
 def health(db: Session=Depends(get_db)):
     db.execute(select(1))
-    return {'status':'ok','mode':'pilot','version':'0.4.0'}
+    return {'status':'ok','mode':'pilot','version':'0.4.1'}
 
 @app.post('/api/auth/login')
 def login(data:Login,response:Response,db:Session=Depends(get_db)):
